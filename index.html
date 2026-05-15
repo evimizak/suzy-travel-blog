@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wander With Suzy — Travel Stories</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+  :root {
+    --cream: #FFF8F0;
+    --cream-2: #F7EEDF;
+    --coral: #FF6B6B;
+    --coral-dark: #E25555;
+    --forest: #2D6A4F;
+    --forest-dark: #1F4D38;
+    --ink: #2A2520;
+    --muted: #6B5F55;
+    --line: #E8DFD0;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .serif { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; }
+
+  /* ---------- NAV ---------- */
+  .nav {
+    position: sticky; top: 0; z-index: 1000;
+    background: rgba(255, 248, 240, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    max-width: 1200px; margin: 0 auto;
+    padding: 18px 32px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 24px;
+  }
+  .brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--forest);
+    letter-spacing: 0.2px;
+    text-decoration: none;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .brand-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--coral);
+    display: inline-block;
+  }
+  .nav-links { display: flex; gap: 28px; }
+  .nav-links a {
+    color: var(--ink);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    position: relative;
+    padding: 6px 2px;
+  }
+  .nav-links a::after {
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+    height: 2px; background: var(--coral);
+    transform: scaleX(0); transform-origin: left;
+    transition: transform 0.25s ease;
+  }
+  .nav-links a:hover::after { transform: scaleX(1); }
+
+  /* ---------- HERO ---------- */
+  .hero {
+    max-width: 1200px; margin: 0 auto;
+    padding: 96px 32px 72px;
+    text-align: center;
+    position: relative;
+  }
+  .hero-kicker {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--forest); font-weight: 600;
+    margin-bottom: 28px;
+  }
+  .hero-kicker::before, .hero-kicker::after {
+    content: ''; width: 28px; height: 1px; background: var(--forest); opacity: 0.5;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(54px, 9vw, 120px);
+    line-height: 0.98;
+    margin: 0 0 24px;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .hero h1 .accent {
+    font-style: italic;
+    color: var(--coral);
+  }
+  .hero p.tagline {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: clamp(20px, 2.4vw, 28px);
+    color: var(--muted);
+    max-width: 640px; margin: 0 auto 36px;
+    line-height: 1.4;
+  }
+  .hero-meta {
+    display: flex; justify-content: center; gap: 36px;
+    flex-wrap: wrap;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .hero-meta span strong {
+    display: block;
+    font-family: 'DM Serif Display', serif;
+    font-style: normal;
+    font-size: 28px;
+    color: var(--forest);
+    letter-spacing: -0.01em;
+    text-transform: none;
+    margin-bottom: 2px;
+  }
+
+  /* ---------- SECTION ---------- */
+  .section {
+    max-width: 1200px; margin: 0 auto;
+    padding: 60px 32px;
+  }
+  .section-head {
+    display: flex; align-items: flex-end; justify-content: space-between;
+    gap: 24px; flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+  .section-head h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(34px, 4.5vw, 52px);
+    margin: 0; color: var(--ink); letter-spacing: -0.01em;
+    line-height: 1.05;
+  }
+  .section-head h2 em { color: var(--coral); font-style: italic; }
+  .section-head p { color: var(--muted); margin: 8px 0 0; max-width: 480px; }
+
+  /* ---------- FILTERS ---------- */
+  .filters {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    padding: 10px 20px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .filter-btn:hover { border-color: var(--coral); color: var(--coral); }
+  .filter-btn.active {
+    background: var(--coral);
+    border-color: var(--coral);
+    color: white;
+  }
+  .filter-btn .swatch {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+  }
+
+  /* ---------- MAP ---------- */
+  .map-wrap {
+    position: relative;
+    background: #E8E0CF;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    box-shadow: 0 30px 60px -30px rgba(45, 106, 79, 0.25);
+  }
+  #map {
+    width: 100%; height: 560px;
+    background: var(--cream-2);
+  }
+  .leaflet-container { background: #E5DCC9; font-family: 'Inter', sans-serif; }
+
+  /* Custom marker */
+  .suzy-marker {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--coral);
+    border: 3px solid white;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.5), 0 0 0 1px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+    animation: pinDrop 0.7s cubic-bezier(.34, 1.56, .64, 1) backwards;
+  }
+  .suzy-marker::after {
+    content: '';
+    position: absolute; inset: -8px;
+    border-radius: 50%;
+    border: 2px solid var(--coral);
+    opacity: 0;
+    animation: pulse 2.4s ease-out infinite;
+  }
+  @keyframes pulse {
+    0% { opacity: 0.7; transform: scale(0.6); }
+    100% { opacity: 0; transform: scale(1.6); }
+  }
+  .suzy-marker:hover { transform: scale(1.15); }
+
+  /* Cluster styling */
+  .suzy-cluster-wrap { background: transparent !important; border: none !important; }
+  .suzy-cluster {
+    border-radius: 50%;
+    background: var(--coral);
+    color: white;
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-weight: 400;
+    display: flex; align-items: center; justify-content: center;
+    border: 3px solid white;
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.45), 0 0 0 1px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+    position: relative;
+    animation: pinDrop 0.7s cubic-bezier(.34, 1.56, .64, 1) backwards;
+  }
+  .suzy-cluster::after {
+    content: '';
+    position: absolute; inset: -6px;
+    border-radius: 50%;
+    border: 2px solid var(--coral);
+    opacity: 0.5;
+    animation: clusterPulse 2.4s ease-out infinite;
+  }
+  @keyframes clusterPulse {
+    0% { opacity: 0.5; transform: scale(0.85); }
+    100% { opacity: 0; transform: scale(1.35); }
+  }
+  .suzy-cluster span {
+    font-size: 18px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+  }
+  .suzy-cluster:hover { transform: scale(1.08); }
+
+  /* Staggered drop-in keyframes (used by both pins and clusters) */
+  @keyframes pinDrop {
+    0%   { opacity: 0; transform: translateY(-32px) scale(0.4); }
+    60%  { opacity: 1; transform: translateY(4px) scale(1.05); }
+    80%  { transform: translateY(-2px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Popup */
+  .leaflet-popup-content-wrapper {
+    border-radius: 18px;
+    padding: 0;
+    box-shadow: 0 30px 60px -20px rgba(45, 106, 79, 0.35), 0 10px 30px -10px rgba(255, 107, 107, 0.15);
+    overflow: hidden;
+    background: var(--cream);
+  }
+  .leaflet-popup-content {
+    margin: 0;
+    width: 300px !important;
+  }
+  .leaflet-popup-tip {
+    background: var(--cream);
+    box-shadow: 0 6px 14px -4px rgba(45, 106, 79, 0.2);
+  }
+
+  /* Close button — small coral circle with white X */
+  .leaflet-popup-close-button {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 50% !important;
+    background: var(--coral) !important;
+    color: white !important;
+    font-family: 'Inter', sans-serif !important;
+    font-size: 0 !important;
+    line-height: 0 !important;
+    text-align: center !important;
+    text-decoration: none !important;
+    padding: 0 !important;
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.45) !important;
+    transition: transform 0.2s ease, background 0.2s ease !important;
+    z-index: 5;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+  .leaflet-popup-close-button::before {
+    content: '×';
+    color: white;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 400;
+    margin-top: -2px;
+  }
+  .leaflet-popup-close-button:hover {
+    background: var(--coral-dark) !important;
+    transform: scale(1.1);
+    color: white !important;
+  }
+
+  .popup-card .photo {
+    width: 100%;
+    height: 180px;
+    background-size: cover;
+    background-position: center;
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+    position: relative;
+  }
+  .popup-card .photo .cat {
+    position: absolute; top: 14px; left: 14px;
+    background: rgba(255, 248, 240, 0.95);
+    color: var(--forest);
+    font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    font-weight: 600;
+    padding: 5px 10px; border-radius: 999px;
+  }
+  .popup-card .body { padding: 18px 20px 20px; }
+  .popup-card .place {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500;
+    margin-bottom: 4px;
+  }
+  .popup-card .country {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px; line-height: 1.1;
+    color: var(--ink);
+    font-weight: 700;
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+  .popup-card .desc {
+    font-size: 12.5px; line-height: 1.55;
+    color: var(--muted);
+    margin: 0 0 14px;
+  }
+  .popup-card .read-more {
+    color: var(--coral);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-flex; align-items: center; gap: 6px;
+    letter-spacing: 0.02em;
+  }
+  .popup-card .read-more::after {
+    content: '→';
+    transition: transform 0.2s ease;
+  }
+  .popup-card .read-more:hover::after { transform: translateX(4px); }
+
+  /* Map legend */
+  .map-legend {
+    position: absolute; bottom: 20px; left: 20px; z-index: 500;
+    background: rgba(255, 248, 240, 0.95);
+    backdrop-filter: blur(6px);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 12px;
+    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.2);
+  }
+  .map-legend .title {
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; margin-bottom: 8px;
+  }
+  .map-legend .count {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px; color: var(--forest);
+  }
+  .map-legend .count span { color: var(--coral); }
+
+  /* ---------- BLOG ---------- */
+  .blog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 28px;
+  }
+  .post {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex; flex-direction: column;
+    cursor: pointer;
+  }
+  .post:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -20px rgba(45, 106, 79, 0.25);
+  }
+  .post .thumb {
+    width: 100%; aspect-ratio: 16/10;
+    background-size: cover; background-position: center;
+    position: relative;
+  }
+  .post .thumb .badge {
+    position: absolute; top: 14px; left: 14px;
+    background: var(--cream);
+    color: var(--forest);
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    font-weight: 600;
+    padding: 6px 12px; border-radius: 999px;
+  }
+  .post .content { padding: 22px 24px 26px; flex: 1; display: flex; flex-direction: column; }
+  .post .date {
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted); font-weight: 500;
+    margin-bottom: 10px;
+  }
+  .post h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 24px; line-height: 1.15;
+    margin: 0 0 12px; color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .post p {
+    color: var(--muted);
+    font-size: 14.5px; line-height: 1.6;
+    margin: 0 0 18px;
+    flex: 1;
+  }
+  .post .read {
+    color: var(--coral);
+    font-weight: 600; font-size: 13px;
+    letter-spacing: 0.02em;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .post .read::after { content: '→'; transition: transform 0.2s ease; }
+  .post:hover .read::after { transform: translateX(4px); }
+
+  /* ---------- FOOTER (shared) ---------- */
+  .site-footer {
+    background: var(--cream);
+    border-top: 3px solid var(--forest);
+    padding: 44px 32px 40px;
+    margin-top: 60px;
+  }
+  .footer-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 28px;
+  }
+  .site-footer .footer-brand {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: var(--forest);
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 10px;
+    justify-self: start;
+  }
+  .site-footer .brand-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--coral);
+  }
+  .socials {
+    display: flex; justify-content: center; gap: 14px;
+  }
+  .socials a {
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 107, 107, 0.1);
+    color: var(--coral);
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: background 0.25s ease, color 0.25s ease, transform 0.25s ease;
+  }
+  .socials a:hover {
+    background: var(--coral);
+    color: white;
+    transform: translateY(-3px);
+  }
+  .socials svg { width: 18px; height: 18px; }
+  .footer-meta {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 22px;
+    font-size: 13px;
+    color: var(--muted);
+    justify-self: end;
+  }
+  .footer-meta .copy { letter-spacing: 0.01em; }
+  .back-top {
+    display: inline-flex; align-items: center; gap: 10px;
+    color: var(--forest);
+    font-weight: 600;
+    text-decoration: none;
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    transition: color 0.2s ease;
+  }
+  .back-top .arrow {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: var(--coral);
+    color: white;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: transform 0.25s ease, background 0.2s ease;
+    font-size: 14px;
+    line-height: 1;
+  }
+  .back-top:hover { color: var(--coral); }
+  .back-top:hover .arrow {
+    transform: translateY(-3px);
+    background: var(--coral-dark);
+  }
+  @media (max-width: 760px) {
+    .footer-inner {
+      grid-template-columns: 1fr;
+      justify-items: center;
+      text-align: center;
+      gap: 22px;
+    }
+    .site-footer .footer-brand,
+    .footer-meta { justify-self: center; }
+    .footer-meta { flex-direction: column; gap: 12px; }
+  }
+
+  /* ---------- RESPONSIVE ---------- */
+  @media (max-width: 900px) {
+    .blog-grid { grid-template-columns: 1fr; }
+    .hero { padding: 64px 24px 48px; }
+    .section { padding: 40px 24px; }
+    .nav-inner { padding: 14px 24px; }
+    .nav-links { gap: 18px; }
+    #map { height: 460px; }
+    .section-head { flex-direction: column; align-items: flex-start; }
+    .hero-meta { gap: 24px; }
+  }
+  @media (max-width: 560px) {
+    .nav-links a { font-size: 14px; }
+    .brand { font-size: 18px; }
+    .hero-meta span { font-size: 11px; }
+    .hero-meta span strong { font-size: 22px; }
+    #map { height: 400px; }
+    .map-legend { left: 14px; bottom: 14px; padding: 10px 12px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav" data-screen-label="Sticky Nav" id="top">
+  <div class="nav-inner">
+    <a href="#" class="brand"><span class="brand-dot"></span>Wander With Suzy</a>
+    <div class="nav-links">
+      <a href="#home">Home</a>
+      <a href="#blog">Blog</a>
+      <a href="#about">About</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="home" data-screen-label="Hero">
+  <div class="hero-kicker">Travel · Stories · Photography</div>
+  <h1 class="serif">Wander With <span class="accent">Suzy</span></h1>
+  <p class="tagline">Stories from every corner of the world.</p>
+  <div class="hero-meta">
+    <span><strong>42</strong>Countries</span>
+    <span><strong>180+</strong>Stories</span>
+    <span><strong>6yrs</strong>On the Road</span>
+  </div>
+</header>
+
+<section class="section" id="map-section" data-screen-label="Interactive Map">
+  <div class="section-head">
+    <div>
+      <h2>Where I've <em>been</em>.</h2>
+      <p>Click a pin to read the story. Filter by what you're hungry for — culture, food, or adventure.</p>
+    </div>
+    <div class="filters" id="filters">
+      <button class="filter-btn active" data-filter="all">All<span class="swatch"></span></button>
+      <button class="filter-btn" data-filter="Culture">Culture</button>
+      <button class="filter-btn" data-filter="Food">Food</button>
+      <button class="filter-btn" data-filter="Adventure">Adventure</button>
+    </div>
+  </div>
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div class="map-legend">
+      <div class="title">Currently Showing</div>
+      <div class="count"><span id="pin-count">8</span> destinations</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="blog" data-screen-label="Latest Blog Posts">
+  <div class="section-head">
+    <div>
+      <h2>Latest <em>dispatches</em>.</h2>
+      <p>Fresh notes from the road, the table, and everywhere in between.</p>
+    </div>
+    <a href="#" class="filter-btn" style="border-color: var(--forest); color: var(--forest);">View All Posts →</a>
+  </div>
+  <div class="blog-grid">
+    <article class="post">
+      <div class="thumb" style="background-image: url('https://picsum.photos/seed/lisbon-trams/600/400');">
+        <span class="badge">Portugal</span>
+      </div>
+      <div class="content">
+        <div class="date">May 4, 2026 · 7 min read</div>
+        <h3>A Slow Morning in Alfama, One Tram at a Time</h3>
+        <p>Lisbon doesn't ask you to hurry. The yellow trams creak past pastel doorways while fado drifts from open windows…</p>
+        <span class="read">Read the story</span>
+      </div>
+    </article>
+    <article class="post">
+      <div class="thumb" style="background-image: url('https://picsum.photos/seed/bangkok-street/600/400');">
+        <span class="badge">Thailand</span>
+      </div>
+      <div class="content">
+        <div class="date">Apr 22, 2026 · 5 min read</div>
+        <h3>The Best Bowl of Boat Noodles I've Ever Had</h3>
+        <p>A tiny stall on a Bangkok klong, three plastic stools, and a broth that took someone's grandmother decades to perfect…</p>
+        <span class="read">Read the story</span>
+      </div>
+    </article>
+    <article class="post">
+      <div class="thumb" style="background-image: url('https://picsum.photos/seed/bali-rice/600/400');">
+        <span class="badge">Indonesia</span>
+      </div>
+      <div class="content">
+        <div class="date">Apr 9, 2026 · 9 min read</div>
+        <h3>Sunrise at Tegallalang: Why I Keep Coming Back to Bali</h3>
+        <p>The rice terraces glow gold for fifteen minutes a day. I've watched it from the same little warung six times now…</p>
+        <span class="read">Read the story</span>
+      </div>
+    </article>
+  </div>
+</section>
+
+<footer class="site-footer" id="about" data-screen-label="Footer">
+  <div class="footer-inner">
+    <a href="#top" class="footer-brand"><span class="brand-dot"></span>Wander With Suzy</a>
+    <nav class="socials" aria-label="Social links">
+      <a href="#" aria-label="Instagram">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="0.9" fill="currentColor" stroke="none"></circle></svg>
+      </a>
+      <a href="#" aria-label="YouTube">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="4"></rect><path d="M10 9.2v5.6l5-2.8z" fill="currentColor" stroke="none"></path></svg>
+      </a>
+      <a href="#" aria-label="Twitter / X">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg>
+      </a>
+    </nav>
+    <div class="footer-meta">
+      <span class="copy">© 2025 Wander With Suzy</span>
+      <a href="#top" class="back-top" aria-label="Back to top"><span>Back to top</span><span class="arrow">↑</span></a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+  const destinations = [
+    { country: 'Portugal', place: 'Lisbon', coords: [38.7223, -9.1393],
+      desc: 'Where it all began. Pastéis de nata and golden-hour sunsets.',
+      tag: 'Home Base', cat: 'Culture', img: 'lisbon-rooftops' },
+    { country: 'Japan', place: 'Tokyo', coords: [35.6762, 139.6503],
+      desc: 'Cherry blossoms and beautiful, controlled chaos.',
+      tag: 'Culture', cat: 'Culture', img: 'tokyo-night' },
+    { country: 'Thailand', place: 'Bangkok', coords: [13.7563, 100.5018],
+      desc: 'Street food heaven. Every corner is a new flavor.',
+      tag: 'Food', cat: 'Food', img: 'bangkok-food' },
+    { country: 'Morocco', place: 'Marrakech', coords: [31.6295, -7.9811],
+      desc: 'The souks, the colors, the glorious madness.',
+      tag: 'Culture', cat: 'Culture', img: 'marrakech-souk' },
+    { country: 'Italy', place: 'Amalfi Coast', coords: [40.6340, 14.6027],
+      desc: 'Lemon trees, cliffside drives, and the bluest water.',
+      tag: 'Culture', cat: 'Culture', img: 'amalfi-coast' },
+    { country: 'Vietnam', place: 'Hanoi', coords: [21.0278, 105.8342],
+      desc: 'Motorbikes, steaming pho, and old quarter magic.',
+      tag: 'Food', cat: 'Food', img: 'hanoi-pho' },
+    { country: 'Greece', place: 'Santorini', coords: [36.3932, 25.4615],
+      desc: 'Blue domes and impossible sunsets.',
+      tag: 'Culture', cat: 'Culture', img: 'santorini-blue' },
+    { country: 'Indonesia', place: 'Bali', coords: [-8.3405, 115.0920],
+      desc: 'Rice terraces at dawn, temple incense, and surf.',
+      tag: 'Adventure', cat: 'Adventure', img: 'bali-rice-fields' },
+  ];
+
+  const map = L.map('map', {
+    center: [20, 30],
+    zoom: 2,
+    minZoom: 2,
+    maxZoom: 6,
+    zoomControl: true,
+    worldCopyJump: true,
+    scrollWheelZoom: false,
+  });
+
+  // Light, minimal tile layer (CartoDB Positron — neutral & cream-compatible)
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd',
+    maxZoom: 19,
+  }).addTo(map);
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png', {
+    subdomains: 'abcd',
+    pane: 'shadowPane',
+    opacity: 0.7,
+  }).addTo(map);
+
+  const markers = [];
+
+  // Coral-themed cluster icons
+  const clusterGroup = L.markerClusterGroup({
+    showCoverageOnHover: false,
+    spiderfyOnMaxZoom: true,
+    zoomToBoundsOnClick: true,
+    maxClusterRadius: 60,
+    iconCreateFunction: (cluster) => {
+      const count = cluster.getChildCount();
+      const size = count < 5 ? 40 : count < 10 ? 48 : 56;
+      return L.divIcon({
+        html: `<div class="suzy-cluster" style="width:${size}px;height:${size}px;"><span>${count}</span></div>`,
+        className: 'suzy-cluster-wrap',
+        iconSize: [size, size],
+      });
+    },
+  });
+
+  destinations.forEach(d => {
+    const icon = L.divIcon({
+      className: 'suzy-marker-wrap',
+      html: '<div class="suzy-marker"></div>',
+      iconSize: [22, 22],
+      iconAnchor: [11, 11],
+      popupAnchor: [0, -14],
+    });
+
+    const popupHtml = `
+      <div class="popup-card">
+        <div class="photo" style="background-image: url('https://picsum.photos/seed/${d.img}/560/300');">
+          <span class="cat">${d.cat}</span>
+        </div>
+        <div class="body">
+          <div class="place">${d.place}</div>
+          <h4 class="country">${d.country}</h4>
+          <p class="desc">${d.desc}</p>
+          <a href="#" class="read-more">Read More</a>
+        </div>
+      </div>`;
+
+    const marker = L.marker(d.coords, { icon })
+      .bindPopup(popupHtml, { closeButton: true, maxWidth: 300, autoPan: false });
+    marker.category = d.cat;
+    marker.on('click', (e) => {
+      L.DomEvent.stopPropagation(e);
+      map.flyTo(d.coords, 6, { duration: 1.1, easeLinearity: 0.25 });
+      map.once('moveend', () => marker.openPopup());
+    });
+    markers.push(marker);
+    clusterGroup.addLayer(marker);
+  });
+  map.addLayer(clusterGroup);
+
+  // Stagger the entrance animation across visible pins + clusters
+  function staggerPins() {
+    const els = document.querySelectorAll(
+      '#map .suzy-marker, #map .suzy-cluster'
+    );
+    els.forEach((el, i) => {
+      el.style.animation = 'none';
+      // force reflow so animation restarts cleanly
+      void el.offsetWidth;
+      el.style.animation = '';
+      el.style.animationDelay = `${i * 90}ms`;
+    });
+  }
+  // Initial staggered entrance
+  setTimeout(staggerPins, 60);
+  // Re-stagger when clusters re-render (zoom change, spiderfy, filter)
+  clusterGroup.on('animationend', staggerPins);
+
+  // Filter behavior
+  const buttons = document.querySelectorAll('.filter-btn[data-filter]');
+  const pinCount = document.getElementById('pin-count');
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const filter = btn.dataset.filter;
+      let shown = 0;
+      markers.forEach(m => {
+        const match = filter === 'all' || m.category === filter;
+        if (match) { clusterGroup.addLayer(m); shown++; }
+        else { clusterGroup.removeLayer(m); }
+      });
+      pinCount.textContent = shown;
+    });
+  });
+</script>
+<script src="reveal.js"></script>
+</body>
+</html>
